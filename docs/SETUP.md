@@ -19,14 +19,19 @@ So: build and unit-test the parsing/UI logic in the emulator, then do all Blueto
 
 ## Install steps (Windows)
 
-1. **Install Android Studio** (Ladybug or later): https://developer.android.com/studio
-   - This bundles the Android SDK, an emulator manager (AVD Manager), and Gradle tooling — everything needed to open this repo and run it.
-2. **Open this repo** (`C:\Daifuku RAG Dev\Active\MotoNav`) in Android Studio: File → Open → select the folder.
+**Already done on the primary dev machine** (2026-09-17) — this section is for setting up a second machine, or reference if something needs reinstalling.
+
+1. **Install Android Studio**: `winget install --id Google.AndroidStudio`.
+   - Bundles the Android SDK, AVD Manager, and Gradle tooling. Run it once after install so its first-run wizard installs the SDK, platform-tools, and emulator.
+   - **Gotcha:** Android Studio's bundled JBR (JetBrains Runtime) tracks the newest JDK (JDK 25 as of this writing) — too new for AGP 8.7.0, which fails with a cryptic bare-version-number error. Install a separate **Temurin 21 JDK** (`winget install --id EclipseAdoptium.Temurin.21.JDK`) and point `JAVA_HOME` at it for CLI Gradle builds. Android Studio itself is unaffected (it always uses its own bundled JBR for the IDE).
+2. **Set `ANDROID_HOME`/`ANDROID_SDK_ROOT`** to the SDK path (`%LOCALAPPDATA%\Android\Sdk`) and **`JAVA_HOME`** to the Temurin 21 install (`setx`, then open a new shell).
+3. **Open this repo** (`C:\Daifuku RAG Dev\Active\MotoNav`) in Android Studio: File → Open → select the folder.
    - Let it sync Gradle on first open (downloads dependencies — needs internet).
-3. **Create an emulator with Google Play, not just Google APIs:**
+   - CLI equivalent: `./gradlew assembleDebug` (uses the repo's pinned Gradle wrapper, 8.10.2).
+4. **Create an emulator with Google Play, not just Google APIs:**
    - AVD Manager → Create Device → pick a Pixel profile → choose a system image tagged **"Google Play"** (not "Google APIs") so Play Store and Play Services are present — needed to install real Google Maps/Waze from the Play Store inside the emulator later, if you want to test against the real apps rather than posted test notifications.
-   - Android 14 or 15 system image recommended (match roughly what your OnePlus 15 runs, so notification-permission behavior lines up).
-4. **Run the app** (green Run button, or Shift+F10) targeting the emulator.
+   - Current dev AVD: `MotoNav_Pixel7_API35` (Pixel 7 profile, API 35, Google Play image). Android 14 or 15 recommended (match roughly what your OnePlus 15 runs, so notification-permission behavior lines up).
+5. **Run the app** (green Run button, or Shift+F10) targeting the emulator, or `adb install -r app/build/outputs/apk/debug/app-debug.apk` after a CLI build.
 
 ## Testing on your OnePlus 15
 
@@ -34,6 +39,10 @@ So: build and unit-test the parsing/UI logic in the emulator, then do all Blueto
 2. Connect via USB, accept the debugging prompt on the phone.
 3. Your device appears in Android Studio's device dropdown next to the emulator — select it and Run to deploy directly.
 4. For untethered testing (riding), build a debug APK and install it once, then just observe logs/behavior without staying plugged in; use `adb logcat` over USB only when you need live debug output.
+
+## Kotlin/Compose gotcha
+
+Kotlin 2.0+ decoupled the Compose compiler from the Kotlin Gradle plugin. `org.jetbrains.kotlin.plugin.compose` must be applied alongside `org.jetbrains.kotlin.android` (both root and app `build.gradle.kts`) or the build fails at configuration with "Compose Compiler Gradle plugin is required." `composeOptions.kotlinCompilerExtensionVersion` is obsolete under this setup — don't add it back.
 
 ## Notification-listener development note
 

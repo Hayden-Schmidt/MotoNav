@@ -6,7 +6,13 @@ See [`docs/MotoNav_PRD_Phase1.md`](docs/MotoNav_PRD_Phase1.md) for the full prod
 
 ## Status
 
-Phase 1 (Android-only POC) — in development. Not yet functional.
+Phase 1 (Android-only POC) — in development. Dev environment is set up and the scaffold builds and runs (no notification parsing/UI logic yet — that's next).
+
+- Git repo initialized; Gradle wrapper (8.10.2) pinned in-repo.
+- Android Studio, SDK (API 35, Google Play system image), Temurin 21 JDK installed; `ANDROID_HOME`/`JAVA_HOME` set.
+- AVD `MotoNav_Pixel7_API35` created; `app-debug.apk` builds via `./gradlew assembleDebug` and installs/launches on it.
+- devgraph MCP (code-graph tool) is currently failing to connect — ignore for now, not blocking.
+- Not yet built: Maps/Waze notification parsing, the actual display UI, settings, auto-launch. See `docs/MotoNav_PRD_Phase1.md` for the phased build order.
 
 ## Project structure
 
