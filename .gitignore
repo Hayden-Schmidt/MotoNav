@@ -1,0 +1,30 @@
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+local.properties
+
+# Android Studio
+*.apk
+*.ap_
+*.dex
+*.class
+bin/
+gen/
+out/
+release/
+
+# Log Files
+*.log
+
+# Keystore files
+*.jks
+*.keystore
+
+# Google Services (if added later, e.g. crash reporting)
+google-services.json
