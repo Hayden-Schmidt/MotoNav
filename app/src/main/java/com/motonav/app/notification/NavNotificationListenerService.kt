@@ -1,20 +1,22 @@
 package com.motonav.app.notification
 
+import android.content.Intent
+import android.service.notification.NotificationListenerService
+import android.service.notification.StatusBarNotification
 import android.util.Log
-import me.trevi.navparser.lib.NavigationNotification
-import me.trevi.navparser.service.NavigationListener
+import com.motonav.app.ride.RideSessionService
 
 /**
- * Captures Google Maps navigation notifications via navparser's NavigationListener, which
- * owns notification filtering/debouncing/RemoteViews parsing internally (see
- * docs/RESEARCH_NOTES.md — navparser has no public Bundle-based parse API, so this class
- * extends its service rather than implementing NavDataParser directly).
+ * Captures Google Maps navigation notifications directly via NotificationListenerService.
+ * Previously delegated Maps parsing to navparser (GMapsParser), but that library never
+ * recognizes Android 16's ProgressStyle notification format Maps now uses — see
+ * GoogleMapsProgressStyleParser and docs/RESEARCH_NOTES.md.
  *
  * NOTE: Notification access must be granted manually by the user via
  * Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS — it is not a normal runtime permission
  * and resets on every reinstall during development. See docs/SETUP.md.
  */
-class NavNotificationListenerService : NavigationListener() {
+class NavNotificationListenerService : NotificationListenerService() {
 
     companion object {
         private const val TAG = "NavListener"
@@ -22,28 +24,28 @@ class NavNotificationListenerService : NavigationListener() {
 
     override fun onListenerConnected() {
         super.onListenerConnected()
-        enabled = true
+        // Keeps RideSessionService alive exactly as long as the OS keeps this listener bound —
+        // it owns auto-launch (nav-start signal) + BT-gated wake lock, see RideSessionService.
+        startService(Intent(this, RideSessionService::class.java))
     }
 
-    override fun onNavigationNotificationAdded(navNotification: NavigationNotification) =
-        publish(navNotification)
-
-    override fun onNavigationNotificationUpdated(navNotification: NavigationNotification) =
-        publish(navNotification)
-
-    override fun onNavigationNotificationRemoved(navNotification: NavigationNotification) {
-        NavStateHolder.update(null)
-    }
-
-    private fun publish(navNotification: NavigationNotification) {
-        val navState = runCatching { GoogleMapsNavMapper.toNavState(navNotification.navigationData) }
-            .onFailure { Log.w(TAG, "Failed to map NavigationData", it) }
+    override fun onNotificationPosted(sbn: StatusBarNotification) {
+        if (sbn.packageName in RawNotificationRecorder.watchedPackages) {
+            RawNotificationRecorder.record(this, sbn)
+        }
+        if (sbn.packageName != GoogleMapsProgressStyleParser.packageName) return
+        val navState = runCatching { GoogleMapsProgressStyleParser.parse(sbn.notification.extras) }
+            .onFailure { Log.w(TAG, "Failed to parse Maps notification", it) }
             .getOrNull() ?: return
         NavStateHolder.update(navState)
     }
 
-    // TODO(Waze): override onNotificationPosted/onNotificationRemoved here (calling super
-    // first so Maps handling via NavigationListener still runs), branching on
-    // sbn.packageName == "com.waze" into a NavDataParser-based Bundle parser once the
-    // on-device notification-capture spike lands (PRD Timeline step 1/3).
+    override fun onNotificationRemoved(sbn: StatusBarNotification) {
+        if (sbn.packageName == GoogleMapsProgressStyleParser.packageName) {
+            NavStateHolder.update(null)
+        }
+    }
+
+    // TODO(Waze): branch on sbn.packageName == "com.waze" here into a NavDataParser-based
+    // Bundle parser once the on-device notification-capture spike lands (PRD Timeline step 1/3).
 }

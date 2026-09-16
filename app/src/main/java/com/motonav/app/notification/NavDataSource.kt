@@ -1,5 +1,18 @@
 package com.motonav.app.notification
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.RoundaboutLeft
+import androidx.compose.material.icons.filled.Straight
+import androidx.compose.material.icons.filled.TurnLeft
+import androidx.compose.material.icons.filled.TurnRight
+import androidx.compose.material.icons.filled.TurnSharpLeft
+import androidx.compose.material.icons.filled.TurnSharpRight
+import androidx.compose.material.icons.filled.TurnSlightLeft
+import androidx.compose.material.icons.filled.TurnSlightRight
+import androidx.compose.material.icons.filled.UTurnLeft
+import androidx.compose.ui.graphics.vector.ImageVector
+
 /**
  * Common shape for parsed navigation state, regardless of source app (Google Maps, Waze).
  *
@@ -41,6 +54,19 @@ enum class ManeuverType {
     ROUNDABOUT,
     ARRIVE,
     UNKNOWN,
+}
+
+fun ManeuverType.icon(): ImageVector = when (this) {
+    ManeuverType.STRAIGHT, ManeuverType.UNKNOWN -> Icons.Filled.Straight
+    ManeuverType.LEFT -> Icons.Filled.TurnLeft
+    ManeuverType.RIGHT -> Icons.Filled.TurnRight
+    ManeuverType.SLIGHT_LEFT -> Icons.Filled.TurnSlightLeft
+    ManeuverType.SLIGHT_RIGHT -> Icons.Filled.TurnSlightRight
+    ManeuverType.SHARP_LEFT -> Icons.Filled.TurnSharpLeft
+    ManeuverType.SHARP_RIGHT -> Icons.Filled.TurnSharpRight
+    ManeuverType.U_TURN -> Icons.Filled.UTurnLeft
+    ManeuverType.ROUNDABOUT -> Icons.Filled.RoundaboutLeft
+    ManeuverType.ARRIVE -> Icons.Filled.Flag
 }
 
 /**
