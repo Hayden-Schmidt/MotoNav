@@ -141,7 +141,7 @@ Riders currently either squint at a full map UI mounted awkwardly on the bars, o
 - No hard external deadline — personal project, paced by your availability.
 - Suggested internal phasing within Phase 1 itself (to de-risk early):
   1. Spike: capture and inspect real Waze notification payloads on-device (Maps side already resolved via `GMapsParser` research — no spike needed there). This single spike also answers the still-open Waze turn-by-turn structure question and the best-effort police-alert question at the same time, since both are read from the same notification capture.
-  2. Build Maps parser (adopt `GMapsParser`'s `navparser` library) + basic UI, test standalone (no auto-launch/power logic yet).
+  2. **Done** — Maps parser built (adopted `GMapsParser`'s `navparser` library via `NavNotificationListenerService`/`GoogleMapsNavMapper`) + basic Compose UI, verified standalone end-to-end on-device (no auto-launch/power logic yet).
   3. Add Waze parser, informed by step 1's capture.
   4. Add settings (screen behavior, auto-launch modes) and background power management.
   5. Play Console closed-track distribution setup.

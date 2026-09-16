@@ -6,13 +6,17 @@ See [`docs/MotoNav_PRD_Phase1.md`](docs/MotoNav_PRD_Phase1.md) for the full prod
 
 ## Status
 
-Phase 1 (Android-only POC) — in development. Dev environment is set up and the scaffold builds and runs (no notification parsing/UI logic yet — that's next).
+Phase 1 (Android-only POC) — in development. Google Maps notification parsing and a basic
+full-screen Compose UI are working and verified end-to-end on-device (PRD Timeline step 2).
 
 - Git repo initialized; Gradle wrapper (8.10.2) pinned in-repo.
 - Android Studio, SDK (API 35, Google Play system image), Temurin 21 JDK installed; `ANDROID_HOME`/`JAVA_HOME` set.
 - AVD `MotoNav_Pixel7_API35` created; `app-debug.apk` builds via `./gradlew assembleDebug` and installs/launches on it.
+- `NavNotificationListenerService` extends navparser's `NavigationListener` and captures live Google Maps navigation notifications; `GoogleMapsNavMapper` converts them to `NavState` (unit conversion, best-effort maneuver-type/street-name derivation from free text).
+- `MainActivity` shows a full-screen Compose UI driven by `NavStateHolder`'s `StateFlow`, switching between an idle screen and the live nav screen. Verified live on the emulator: starting/stopping Google Maps turn-by-turn navigation correctly updates and clears the UI.
+- Unit tests for `GoogleMapsNavMapper` in `app/src/test/`.
 - devgraph MCP (code-graph tool) is currently failing to connect — ignore for now, not blocking.
-- Not yet built: Maps/Waze notification parsing, the actual display UI, settings, auto-launch. See `docs/MotoNav_PRD_Phase1.md` for the phased build order.
+- Not yet built: Waze notification parsing (needs on-device capture spike first), settings, auto-launch, maneuver-icon rendering, BLE/ESP32 output. See `docs/MotoNav_PRD_Phase1.md` for the phased build order.
 
 ## Project structure
 
@@ -39,6 +43,12 @@ MotoNav/
 4. Settings control screen-on behavior and auto-launch triggers (BT connect / nav start / both).
 
 Full rationale and resolved research questions are in the PRD.
+
+## Claude Code setup
+
+- `.mcp.json` configures the **context7** MCP server (live library docs) — used for the pinned `GMapsParser`/`navparser` snapshot dependency and AndroidX/Compose APIs.
+- `.claude/skills/gen-test` — generates a JUnit 4 test for a Kotlin class, matching this repo's test setup (`/gen-test`).
+- `.claude/skills/project-conventions` — background knowledge Claude applies automatically (BLE-serialization constraint on `NavState`, minSdk 26 rationale, parser library guidance).
 
 ## Phase roadmap
 

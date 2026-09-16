@@ -17,12 +17,29 @@ data class NavState(
     val remainingDistanceMeters: Double?,
     val isRerouting: Boolean = false,
     val alertText: String? = null,  // Waze police/hazard best-effort (P1) — null if unavailable
+    val maneuverType: ManeuverType = ManeuverType.UNKNOWN,
     val lastUpdated: Long = System.currentTimeMillis(),
 )
 
 enum class NavSourceApp {
     GOOGLE_MAPS,
     WAZE,
+    UNKNOWN,
+}
+
+// Drives the turn-arrow icon in the UI (PRD "Display UI"). Plain enum — name/ordinal
+// serializes fine for the future BLE broadcast to the ESP32 receiver.
+enum class ManeuverType {
+    STRAIGHT,
+    LEFT,
+    RIGHT,
+    SLIGHT_LEFT,
+    SLIGHT_RIGHT,
+    SHARP_LEFT,
+    SHARP_RIGHT,
+    U_TURN,
+    ROUNDABOUT,
+    ARRIVE,
     UNKNOWN,
 }
 
