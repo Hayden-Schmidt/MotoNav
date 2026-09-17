@@ -13,6 +13,7 @@ data class NavDialConfig(
     val showEta: Boolean = true,
     val showDistanceRemaining: Boolean = true,
     val showStreetName: Boolean = true,
+    val showRouteLine: Boolean = true,
 )
 
 val DefaultNavDialConfig = NavDialConfig()

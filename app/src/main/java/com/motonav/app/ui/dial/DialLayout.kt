@@ -38,6 +38,17 @@ object DialLayout {
     const val SPEED_LIMIT_CENTER_Y_FRACTION = 0.10f
     const val SPEED_LIMIT_SIZE_FRACTION = 0.30f
 
+    // Route line (Phase B) — schematic, heading-relative slice of the route ahead, per
+    // docs/MotoNav_REBUILD_PLAN_OSM.md Phase B item 1/2. The current position/heading arrow is
+    // pinned at ROUTE_LINE_ANCHOR_Y_FRACTION; ROUTE_LINE_LOOKAHEAD_METERS of real-world distance
+    // ahead maps onto ROUTE_LINE_SPAN_FRACTION of the radius, so the line runs "up" (forward) from
+    // the anchor. Cheap geometric primitives (a handful of line segments) — ESP32-transcribable,
+    // unlike a bitmap.
+    const val ROUTE_LINE_ANCHOR_Y_FRACTION = 0.80f
+    const val ROUTE_LINE_SPAN_FRACTION = 1.6f
+    const val ROUTE_LINE_LOOKAHEAD_METERS = 250f
+    const val ROUTE_LINE_WIDTH_FRACTION = 0.035f
+
     // Idle-state centre logo
     const val LOGO_SIZE_FRACTION = 0.5f // fraction of dial *diameter*
 
@@ -57,4 +68,6 @@ object DialLayout {
     val RING_STALE_COLOR = Color(0xFFE8402F) // alarm red — MotoNav itself lost the feed
     val RING_IDLE_COLOR = Color(0xFF3A3A3A)
     val COMPASS_MARKER_COLOR = Color(0xFFE8402F) // per stage-2 spec: "a red marker", full stop
+    // Dim/neutral — the maneuver icon + ring carry the primary signal, the route line is context.
+    val ROUTE_LINE_COLOR = Color(0xFF6E7B85)
 }
