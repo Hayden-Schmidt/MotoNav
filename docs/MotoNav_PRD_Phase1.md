@@ -1,8 +1,31 @@
 # MotoNav — Phase 1 PRD (Android Companion Navigation Display)
 
-**Status:** Final v1 — approved to build
+**Status:** Final v1 — approved to build. **Architecture revised Sept 2026** — see below.
 **Working title:** MotoNav (rename after POC — branding pass planned)
 **Phase:** 1 of 3 (Android-only POC → ESP32 display → multi-rider pairing)
+
+---
+
+## Architecture revision (Sept 2026) — read this first
+
+Phase 1's original architecture (below, largely intact) was notification-listening: read Google Maps/Waze's own navigation notifications, parse maneuver/distance/ETA out of the text, never do our own routing. That decision has been **revised**: MotoNav now calls the **Google Navigation SDK** directly — we request routes and receive structured turn-by-turn data from Google's own routing backend, rather than reading another app's notification tray.
+
+**Why the change, in short** (full record in `docs/RESEARCH_NOTES.md`, "Google Navigation SDK — architecture decision"):
+- Notification-derived maneuver type and street name were both best-effort text-parsing (English keyword matching / regex) — confirmed brittle by code review, not just a theoretical risk.
+- The Navigation SDK ships a **turn-by-turn data feed** built by Google specifically for "two-wheeled vehicle drivers... minimal distractions" projected displays — this project's exact use case, by their own documentation's wording.
+- It gives a real `Maneuver` enum (62 documented constants), full road name, lane guidance, and a real navigation-state machine (`ENROUTE`/`REROUTING`/`STOPPED`/`UNKNOWN`) — no text-guessing anywhere.
+- It also resolves the Phase 3 dead-reckoning/compass-mode blocker for free (see the Beeline Moto II case study in `docs/RESEARCH_NOTES.md`): since MotoNav calls `setDestination()` itself, it already holds the coordinates needed for bearing math.
+- An earlier research pass incorrectly concluded the Navigation SDK was ToS-blocked for this use case; that was based on the *general* Maps Platform ToS, not the Navigation SDK's own Service Specific Terms, which explicitly permit it. Corrected in `docs/RESEARCH_NOTES.md`.
+
+**What this changes in the sections below**, read as amendments rather than a full rewrite:
+- **Problem Statement / Goals** — still accurate in spirit (glanceable display, rides on top of a trusted routing source). "Rides on top of a trusted app" now means "uses Google's own routing backend directly," not "reads the Google Maps app's notifications."
+- **Non-Goals** — the line *"No turn-by-turn routing of our own — we never calculate routes"* is **no longer accurate** and is superseded: MotoNav now does request routes, via the Navigation SDK, from Google's backend. We still don't run our own routing/mapping stack (no OSM, no self-hosted Mapbox/Valhalla/OSRM) — Google remains the routing source, just accessed as an SDK instead of read from a notification.
+- **Requirements → "Notification capture & parsing"** — this whole section is superseded by the Navigation SDK integration. `NavNotificationListenerService`/`GoogleMapsNavMapper`/notification-based `NavDataSource` are kept in the codebase (working, on-device-verified) but marked superseded in-code; new data-model work happens in `app/src/main/java/com/motonav/app/navsdk/`. See `docs/RESEARCH_NOTES.md` for the full technical requirement list (compileSdk/targetSdk 36, Gradle 8.13, AGP 8.13.2, API key setup).
+- **Waze** — the original plan had a P0/P1 path to Waze turn-by-turn via notification-listening. The Navigation SDK has **no Waze equivalent** — it's Google-only, permanently. This is a real scope reduction versus the original PRD, accepted as part of this decision: MotoNav Phase 1 is now Google Maps-routing only, full stop, not "Google Maps first, Waze next." If Waze support is ever wanted later, it would need to go back to notification-listening as a second, parallel data source — not a Navigation SDK feature.
+- **New prerequisite, not in the original plan**: a Google Cloud project + billing + API key, which only Hayden can set up (see `docs/MotoNav_GCP_SETUP.md`). Nothing else in this PRD can be truly load-bearing-tested until that exists.
+- **New follow-up work, not yet done**: a destination-entry/search UI (MotoNav now needs to ask the rider where they're going, since it's requesting the route itself) and Navigator lifecycle wiring in `MainActivity`. Tracked outside this doc as an active build task, not restated here.
+
+Everything below this point is the **original** Phase 1 PRD, kept for its still-valid reasoning (user stories, screen/power/auto-launch requirements, success metrics) — read it with the amendments above in mind rather than as literally current on the routing-architecture points.
 
 ---
 
@@ -24,7 +47,7 @@ Riders currently either squint at a full map UI mounted awkwardly on the bars, o
 
 - **No ESP32/hardware output.** That's Phase 2. Phase 1 is phone-screen-only.
 - **No multi-rider pairing/binding.** That's Phase 3, and only relevant once hardware exists.
-- **No turn-by-turn routing of our own.** We never calculate routes — we only read and redisplay what Maps/Waze is already doing. No offline map data, no rerouting logic.
+- ~~**No turn-by-turn routing of our own.** We never calculate routes — we only read and redisplay what Maps/Waze is already doing.~~ **SUPERSEDED, see "Architecture revision" at top of this doc** — MotoNav now requests routes via the Navigation SDK. Still true: no offline map data, no self-hosted routing/mapping stack (Google remains the actual routing source).
 - **No support for nav apps beyond Google Maps and Waze in Phase 1.** A generic/other-app fallback parser is explicitly deferred — parsing two well-known notification formats is already two integration surfaces; adding a "guess any app" heuristic now is scope creep with low reliability payoff.
 - **No public app store release.** Play Console *closed testing track* only for Phase 1 — not a production listing. Public release/branding is a later decision.
 
@@ -53,7 +76,7 @@ Riders currently either squint at a full map UI mounted awkwardly on the bars, o
 
 ### Must-Have (P0)
 
-**Notification capture & parsing**
+**Notification capture & parsing** — *superseded, see "Architecture revision" at top of this doc; requirements below describe the original notification-listening plan, kept for record*
 - [ ] `NotificationListenerService` implemented and requests the required Android permission with a clear in-app explanation screen (not just the bare OS prompt).
 - [ ] Parser for Google Maps navigation notifications extracting: maneuver/direction type, distance to next maneuver, upcoming street name, ETA, ETA distance remaining.
 - [ ] Parser for Waze navigation notifications extracting the same fields.
@@ -99,6 +122,7 @@ Riders currently either squint at a full map UI mounted awkwardly on the bars, o
 
 ### Future Considerations (P2) — informs architecture, not built now
 
+- [ ] **iOS build.** Newly a real option (Sept 2026), not previously possible: Google ships a `Navigation SDK for iOS` counterpart to the Android SDK we adopted, using the same routing backend/data model. The old notification-listening architecture had no iOS equivalent (no iOS API for reading another app's navigation notifications), so this was never on the table before the Navigation SDK pivot. The project's GCP API key already has `Maps SDK for iOS` enabled in its restrictions in anticipation of this (see `docs/MotoNav_GCP_SETUP.md`) — no iOS code exists yet and it's not scheduled in the current phase roadmap, just a deliberately-kept door.
 - [ ] BLE peripheral role for broadcasting parsed `NavDataSource` output to an ESP32 (Phase 2). Requirement here: keep the internal data model serialization-ready (simple struct/JSON, no UI-coupled types) so this is additive, not a rewrite.
 - [ ] Multi-device pairing/binding with bonded-device confirmation ceremony (Phase 3).
 - [ ] System notification (instead of full auto-launch) as an alternative auto-launch UX, flagged by you as a post-POC idea.

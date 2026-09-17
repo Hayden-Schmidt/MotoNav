@@ -14,6 +14,15 @@ import androidx.compose.material.icons.filled.UTurnLeft
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
+ * SUPERSEDED (Sept 2026) — Phase 1 architecture moved from notification-listening to the
+ * Navigation SDK. See docs/RESEARCH_NOTES.md "Google Navigation SDK — architecture decision"
+ * and the new model in navsdk/NavSdkState.kt (NavSdkUiState), which replaces this file's role.
+ *
+ * Kept in place (not deleted) because it's working, on-device-verified code and nothing has
+ * rewired MainActivity/NavStateHolder consumers off of it yet — that rewiring is tracked
+ * separately, not done blind alongside the new model's introduction. Do not build new features
+ * on this path; extend navsdk/ instead.
+ *
  * Common shape for parsed navigation state, regardless of source app (Google Maps, Waze).
  *
  * Per PRD: this must stay serialization-ready (simple types only, no UI-coupled classes)

@@ -9,6 +9,12 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Required by the Navigation SDK for turn-by-turn guidance (own-routing architecture,
+         see docs/RESEARCH_NOTES.md). Runtime request still needs to be implemented in-app. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
     <application
         android:name=".MotoNavApp"
         android:allowBackup="true"
@@ -16,6 +22,13 @@
         android:label="@string/app_name"
         android:theme="@android:style/Theme.Material.NoActionBar"
         android:supportsRtl="true">
+
+        <!-- Navigation SDK API key — value injected from local.properties via
+             manifestPlaceholders in app/build.gradle.kts. Empty until docs/MotoNav_GCP_SETUP.md
+             is completed; the SDK will fail to authenticate until then. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
 
         <activity
             android:name=".MainActivity"
@@ -44,6 +57,12 @@
             android:name=".ride.RideSessionService"
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />
+
+        <!-- Navigation SDK turn-by-turn receiver — see navsdk/NavSdkTurnByTurnService.kt.
+             Wired but inert until a Navigator + destination-entry UI exists to register it. -->
+        <service
+            android:name=".navsdk.NavSdkTurnByTurnService"
+            android:exported="false" />
 
         <!-- ACL_CONNECTED/DISCONNECTED are exempt from Android 8+ implicit-broadcast limits. -->
         <receiver android:name=".ride.BluetoothConnectionReceiver" android:exported="true">

@@ -1,0 +1,122 @@
+- generic [ref=f7e1]:
+  - generic [ref=f7e3]:
+    - link "Skip to main content" [ref=f7e4] [cursor=pointer]:
+      - /url: "#main"
+    - banner:
+      - heading [level=1] [ref=f7e7]:
+        - link "Firebase Console" [ref=f7e8] [cursor=pointer]:
+          - /url: "#"
+          - img "Firebase logo" [ref=f7e11]
+    - main [ref=f7e13]:
+      - generic [ref=f7e16]:
+        - generic [ref=f7e17]:
+          - generic [ref=f7e18]: Hello, Hayden
+          - heading "Welcome to Firebase!" [level=2] [ref=f7e19]
+        - generic [ref=f7e20]:
+          - generic [ref=f7e21]:
+            - heading "Get started" [level=3] [ref=f7e22]
+            - button "Get started by setting up a Firebase project" [ref=f7e26] [cursor=pointer]:
+              - generic [ref=f7e29]: Integrate Firebase products to super-charge your app
+          - generic [ref=f7e30]:
+            - heading "Try out a sample app" [level=3] [ref=f7e31]
+            - generic [ref=f7e32]:
+              - button "Try an AI-powered trip planner app" [ref=f7e36] [cursor=pointer]:
+                - generic [ref=f7e39]: Deploy a sample app that uses Firestore, Authentication, and multimodal input using Firebase AI Logic.
+              - button "Try an agentic barista app" [ref=f7e43] [cursor=pointer]:
+                - generic [ref=f7e46]: Deploy a sample app that uses Firestore, Authentication, and function calling in Firebase AI Logic.
+        - generic [ref=f7e47]:
+          - generic [ref=f7e48]:
+            - img [aria-hidden] [ref=f7e49]: explore
+            - text: Explore our view-only demo project
+          - button "Explore our view-only demo project" [ref=f7e50]:
+            - generic [ref=f7e51]: View
+        - generic [ref=f7e55]:
+          - generic [ref=f7e56]:
+            - generic [ref=f7e57]: Language
+            - combobox "Language English (United States)" [ref=f7e58]:
+              - generic [ref=f7e59] [cursor=pointer]: English (United States)
+          - list [ref=f7e66]:
+            - listitem [ref=f7e67]:
+              - link "View Firebase support (open in new tab)" [ref=f7e68] [cursor=pointer]:
+                - /url: https://firebase.google.com/support?hl=en-US&authuser=0
+                - text: Support
+            - listitem [ref=f7e69]:
+              - link "View Firebase terms and services (open in new tab)" [ref=f7e70] [cursor=pointer]:
+                - /url: https://firebase.google.com/terms?hl=en-US&authuser=0
+                - text: Terms
+            - listitem [ref=f7e71]:
+              - link "View Google privacy policy (open in new tab)" [ref=f7e72] [cursor=pointer]:
+                - /url: https://www.google.com/policies/privacy/
+                - text: Privacy Policy
+    - generic "Gemini in Firebase" [ref=f7e73]:
+      - generic [ref=f7e74]:
+        - generic [ref=f7e75]:
+          - 'button "Google Account: Hayden Schmidt (yesitshayden@gmail.com)" [ref=f7e83] [cursor=pointer]'
+          - button "Open alerts" [ref=f7e87] [cursor=pointer]:
+            - img [aria-hidden] [ref=f7e88]: notifications
+          - button "Chat with Gemini (Alt+G)" [disabled] [ref=f7e96]:
+            - img [aria-hidden] [ref=f7e98]: spark
+            - tooltip "Gemini in Firebase Select a project to use Gemini in Firebase" [ref=f7e101]:
+              - generic:
+                - text: Gemini in Firebase
+                - generic [ref=f7e102]: Select a project to use Gemini in Firebase
+          - button "Help" [ref=f7e105] [cursor=pointer]:
+            - img [aria-hidden] [ref=f7e106]: contact_support
+          - separator [ref=f7e109]
+          - button "Activate Cloud Shell" [ref=f7e110] [cursor=pointer]:
+            - tooltip "Supercharge your development! Try Cloud Shell to access the built-in Firebase CLI and run Firebase emulators directly in a virtual machine." [ref=f7e116]
+          - button "Toggle Learn Panel" [disabled]:
+            - img [aria-hidden]: school
+        - 'button "Current theme: Light, adjust theme" [ref=f7e120] [cursor=pointer]':
+          - img [aria-hidden] [ref=f7e121]: dark_mode
+  - dialog [ref=f7e132]:
+    - generic [ref=f7e134]:
+      - generic [ref=f7e135]:
+        - button "Close form" [ref=f7e136] [cursor=pointer]:
+          - img [aria-hidden] [ref=f7e137]: close
+        - heading "Create a project" [level=1] [ref=f7e141]
+      - generic [ref=f7e249]:
+        - heading "Google Analytics for your Firebase project" [level=2] [ref=f7e250]
+        - generic [ref=f7e251]: Google Analytics is a free and unlimited analytics solution that enables targeting, reporting, and more in Firebase Crashlytics, Cloud Messaging, In-App Messaging, Remote Config, A/B Testing, and Cloud Functions.
+        - generic [ref=f7e252]:
+          - generic [ref=f7e253]:
+            - generic [ref=f7e254]: "Google Analytics enables:"
+            - list "Google Analytics enables:" [ref=f7e255]:
+              - listitem [ref=f7e256]:
+                - generic [ref=f7e257]:
+                  - img [aria-hidden] [ref=f7e317]: close
+                  - generic [ref=f7e259]: A/B testing
+                  - button "Learn more about Firebase A/B testing" [ref=f7e261]:
+                    - img [aria-hidden] [ref=f7e262]: help
+              - listitem [ref=f7e263]:
+                - generic [ref=f7e264]:
+                  - img [aria-hidden] [ref=f7e318]: close
+                  - generic [ref=f7e266]: User segmentation & targeting across Firebase products
+                  - button "Learn more about Firebase user segmentation and targeting" [ref=f7e268]:
+                    - img [aria-hidden] [ref=f7e269]: help
+              - listitem [ref=f7e270]:
+                - generic [ref=f7e271]:
+                  - img [aria-hidden] [ref=f7e319]: close
+                  - generic [ref=f7e273]: Breadcrumb logs in Crashlytics
+                  - button "Learn more about breadcrumb logs in Crashlytics" [ref=f7e275]:
+                    - img [aria-hidden] [ref=f7e276]: help
+              - listitem [ref=f7e277]:
+                - generic [ref=f7e278]:
+                  - img [aria-hidden] [ref=f7e320]: close
+                  - generic [ref=f7e280]: Event-based Cloud Functions triggers
+                  - button "Learn more about event-based cloud functions triggers" [ref=f7e282]:
+                    - img [aria-hidden] [ref=f7e283]: help
+              - listitem [ref=f7e284]:
+                - generic [ref=f7e285]:
+                  - img [aria-hidden] [ref=f7e321]: close
+                  - generic [ref=f7e287]: Free unlimited reporting
+                  - button "Learn more about Firebase reporting" [ref=f7e289]:
+                    - img [aria-hidden] [ref=f7e290]: help
+          - generic [ref=f7e293]:
+            - switch "Enable Google Analytics for this project Recommended" [active] [ref=f7e294] [cursor=pointer]
+            - generic [ref=f7e305] [cursor=pointer]:
+              - generic [ref=f7e306]: Enable Google Analytics for this project
+              - generic [ref=f7e307]: Recommended
+        - generic [ref=f7e308]:
+          - button "Previous" [ref=f7e309]
+          - button "Create project" [ref=f7e322]

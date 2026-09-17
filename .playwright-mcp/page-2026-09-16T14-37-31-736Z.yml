@@ -1,0 +1,108 @@
+- generic [ref=f7e1]:
+  - generic [ref=f7e3]:
+    - link "Skip to main content" [ref=f7e4] [cursor=pointer]:
+      - /url: "#main"
+    - banner:
+      - heading [level=1] [ref=f7e7]:
+        - link "Firebase Console" [ref=f7e8] [cursor=pointer]:
+          - /url: "#"
+          - img "Firebase logo" [ref=f7e11]
+    - main [ref=f7e13]:
+      - generic [ref=f7e16]:
+        - generic [ref=f7e17]:
+          - generic [ref=f7e18]: Hello, Hayden
+          - heading "Welcome to Firebase!" [level=2] [ref=f7e19]
+        - generic [ref=f7e20]:
+          - generic [ref=f7e21]:
+            - heading "Get started" [level=3] [ref=f7e22]
+            - button "Get started by setting up a Firebase project" [ref=f7e26] [cursor=pointer]:
+              - generic [ref=f7e29]: Integrate Firebase products to super-charge your app
+          - generic [ref=f7e30]:
+            - heading "Try out a sample app" [level=3] [ref=f7e31]
+            - generic [ref=f7e32]:
+              - button "Try an AI-powered trip planner app" [ref=f7e36] [cursor=pointer]:
+                - generic [ref=f7e39]: Deploy a sample app that uses Firestore, Authentication, and multimodal input using Firebase AI Logic.
+              - button "Try an agentic barista app" [ref=f7e43] [cursor=pointer]:
+                - generic [ref=f7e46]: Deploy a sample app that uses Firestore, Authentication, and function calling in Firebase AI Logic.
+        - generic [ref=f7e47]:
+          - generic [ref=f7e48]:
+            - img [aria-hidden] [ref=f7e49]: explore
+            - text: Explore our view-only demo project
+          - button "Explore our view-only demo project" [ref=f7e50]:
+            - generic [ref=f7e51]: View
+        - generic [ref=f7e55]:
+          - generic [ref=f7e56]:
+            - generic [ref=f7e57]: Language
+            - combobox "Language English (United States)" [ref=f7e58]:
+              - generic [ref=f7e59] [cursor=pointer]: English (United States)
+          - list [ref=f7e66]:
+            - listitem [ref=f7e67]:
+              - link "View Firebase support (open in new tab)" [ref=f7e68] [cursor=pointer]:
+                - /url: https://firebase.google.com/support?hl=en-US&authuser=0
+                - text: Support
+            - listitem [ref=f7e69]:
+              - link "View Firebase terms and services (open in new tab)" [ref=f7e70] [cursor=pointer]:
+                - /url: https://firebase.google.com/terms?hl=en-US&authuser=0
+                - text: Terms
+            - listitem [ref=f7e71]:
+              - link "View Google privacy policy (open in new tab)" [ref=f7e72] [cursor=pointer]:
+                - /url: https://www.google.com/policies/privacy/
+                - text: Privacy Policy
+    - generic "Gemini in Firebase" [ref=f7e73]:
+      - generic [ref=f7e74]:
+        - generic [ref=f7e75]:
+          - 'button "Google Account: Hayden Schmidt (yesitshayden@gmail.com)" [ref=f7e83] [cursor=pointer]'
+          - button "Open alerts" [ref=f7e87] [cursor=pointer]:
+            - img [aria-hidden] [ref=f7e88]: notifications
+          - button "Chat with Gemini (Alt+G)" [disabled] [ref=f7e96]:
+            - img [aria-hidden] [ref=f7e98]: spark
+            - tooltip "Gemini in Firebase Select a project to use Gemini in Firebase" [ref=f7e101]:
+              - generic:
+                - text: Gemini in Firebase
+                - generic [ref=f7e102]: Select a project to use Gemini in Firebase
+          - button "Help" [ref=f7e105] [cursor=pointer]:
+            - img [aria-hidden] [ref=f7e106]: contact_support
+          - separator [ref=f7e109]
+          - button "Activate Cloud Shell" [ref=f7e110] [cursor=pointer]:
+            - tooltip "Supercharge your development! Try Cloud Shell to access the built-in Firebase CLI and run Firebase emulators directly in a virtual machine." [ref=f7e116]
+          - button "Toggle Learn Panel" [disabled]:
+            - img [aria-hidden]: school
+        - 'button "Current theme: Light, adjust theme" [ref=f7e120] [cursor=pointer]':
+          - img [aria-hidden] [ref=f7e121]: dark_mode
+  - dialog [ref=f7e132]:
+    - generic [ref=f7e134]:
+      - generic [ref=f7e135]:
+        - button "Close form" [ref=f7e136] [cursor=pointer]:
+          - img [aria-hidden] [ref=f7e137]: close
+        - heading "Create a project" [active] [level=1] [ref=f7e141]
+      - generic [ref=f7e204]:
+        - generic [ref=f7e205]:
+          - heading "AI assistance for your Firebase project" [level=2] [ref=f7e206]
+          - paragraph [ref=f7e207]: Gemini in Firebase is integrated within the Firebase console to help streamline your development process.
+          - list [ref=f7e208]:
+            - img [aria-hidden] [ref=f7e209]: spark
+            - listitem [ref=f7e210]: Chat with Gemini to plan and design your application, troubleshoot issues, and get recommendations tailored to your project
+            - img [aria-hidden] [ref=f7e211]: gmp_crashlytics
+            - listitem [ref=f7e212]: Debug and troubleshoot issues in your apps using AI assistance in Firebase Crashlytics
+            - img [aria-hidden] [ref=f7e213]: gmp_cloud_messaging
+            - listitem [ref=f7e214]: Get campaign insights and recommendations to engage your users through Firebase Cloud Messaging
+            - img [aria-hidden] [ref=f7e215]: gmp_dataconnect
+            - listitem [ref=f7e216]: Generate schema and explore your data using natural language in Firebase SQL Connect
+        - generic [ref=f7e219]:
+          - switch "Enable Gemini in Firebase Recommended" [checked] [ref=f7e220] [cursor=pointer]
+          - generic [ref=f7e231] [cursor=pointer]:
+            - generic [ref=f7e232]: Enable Gemini in Firebase
+            - generic [ref=f7e233]: Recommended
+        - generic [ref=f7e234]:
+          - text: "Disclaimers: Gemini in Firebase is still under development and may give inaccurate information. Test any code it generates before using it in your apps. Use of Gemini in Firebase (no-cost) is governed by the"
+          - link "Google Terms of Service (opens in new tab)" [ref=f7e235] [cursor=pointer]:
+            - /url: https://policies.google.com/terms
+            - text: Google Terms of Service open_in_new
+          - text: and the
+          - link "Generative AI prohibited use policy (opens in new tab)" [ref=f7e236] [cursor=pointer]:
+            - /url: https://policies.google.com/terms/generative-ai/use-policy
+            - text: Generative AI prohibited use policy open_in_new
+          - text: ", so Gemini in Firebase may use your prompts and its responses to train its model."
+        - generic [ref=f7e237]:
+          - button "Previous" [ref=f7e238]
+          - button "Continue" [ref=f7e242]

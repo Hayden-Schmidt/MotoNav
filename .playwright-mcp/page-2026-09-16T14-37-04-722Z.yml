@@ -1,0 +1,109 @@
+- generic [ref=f7e1]:
+  - generic [ref=f7e3]:
+    - link "Skip to main content" [ref=f7e4] [cursor=pointer]:
+      - /url: "#main"
+    - banner:
+      - heading [level=1] [ref=f7e7]:
+        - link "Firebase Console" [ref=f7e8] [cursor=pointer]:
+          - /url: "#"
+          - img "Firebase logo" [ref=f7e11]
+    - main [ref=f7e13]:
+      - generic [ref=f7e16]:
+        - generic [ref=f7e17]:
+          - generic [ref=f7e18]: Hello, Hayden
+          - heading "Welcome to Firebase!" [level=2] [ref=f7e19]
+        - generic [ref=f7e20]:
+          - generic [ref=f7e21]:
+            - heading "Get started" [level=3] [ref=f7e22]
+            - button "Get started by setting up a Firebase project" [ref=f7e26] [cursor=pointer]:
+              - generic [ref=f7e29]: Integrate Firebase products to super-charge your app
+          - generic [ref=f7e30]:
+            - heading "Try out a sample app" [level=3] [ref=f7e31]
+            - generic [ref=f7e32]:
+              - button "Try an AI-powered trip planner app" [ref=f7e36] [cursor=pointer]:
+                - generic [ref=f7e39]: Deploy a sample app that uses Firestore, Authentication, and multimodal input using Firebase AI Logic.
+              - button "Try an agentic barista app" [ref=f7e43] [cursor=pointer]:
+                - generic [ref=f7e46]: Deploy a sample app that uses Firestore, Authentication, and function calling in Firebase AI Logic.
+        - generic [ref=f7e47]:
+          - generic [ref=f7e48]:
+            - img [aria-hidden] [ref=f7e49]: explore
+            - text: Explore our view-only demo project
+          - button "Explore our view-only demo project" [ref=f7e50]:
+            - generic [ref=f7e51]: View
+        - generic [ref=f7e55]:
+          - generic [ref=f7e56]:
+            - generic [ref=f7e57]: Language
+            - combobox "Language English (United States)" [ref=f7e58]:
+              - generic [ref=f7e59] [cursor=pointer]: English (United States)
+          - list [ref=f7e66]:
+            - listitem [ref=f7e67]:
+              - link "View Firebase support (open in new tab)" [ref=f7e68] [cursor=pointer]:
+                - /url: https://firebase.google.com/support?hl=en-US&authuser=0
+                - text: Support
+            - listitem [ref=f7e69]:
+              - link "View Firebase terms and services (open in new tab)" [ref=f7e70] [cursor=pointer]:
+                - /url: https://firebase.google.com/terms?hl=en-US&authuser=0
+                - text: Terms
+            - listitem [ref=f7e71]:
+              - link "View Google privacy policy (open in new tab)" [ref=f7e72] [cursor=pointer]:
+                - /url: https://www.google.com/policies/privacy/
+                - text: Privacy Policy
+    - generic "Gemini in Firebase" [ref=f7e73]:
+      - generic [ref=f7e74]:
+        - generic [ref=f7e75]:
+          - 'button "Google Account: Hayden Schmidt (yesitshayden@gmail.com)" [ref=f7e83] [cursor=pointer]'
+          - button "Open alerts" [ref=f7e87] [cursor=pointer]:
+            - img [aria-hidden] [ref=f7e88]: notifications
+          - button "Chat with Gemini (Alt+G)" [disabled] [ref=f7e96]:
+            - img [aria-hidden] [ref=f7e98]: spark
+            - tooltip "Gemini in Firebase Select a project to use Gemini in Firebase" [ref=f7e101]:
+              - generic:
+                - text: Gemini in Firebase
+                - generic [ref=f7e102]: Select a project to use Gemini in Firebase
+          - button "Help" [ref=f7e105] [cursor=pointer]:
+            - img [aria-hidden] [ref=f7e106]: contact_support
+          - separator [ref=f7e109]
+          - button "Activate Cloud Shell" [ref=f7e110] [cursor=pointer]:
+            - tooltip "Supercharge your development! Try Cloud Shell to access the built-in Firebase CLI and run Firebase emulators directly in a virtual machine." [ref=f7e116]
+          - button "Toggle Learn Panel" [disabled]:
+            - img [aria-hidden]: school
+        - 'button "Current theme: Light, adjust theme" [ref=f7e120] [cursor=pointer]':
+          - img [aria-hidden] [ref=f7e121]: dark_mode
+  - dialog [ref=f7e132]:
+    - generic [ref=f7e134]:
+      - generic [ref=f7e135]:
+        - button "Close form" [ref=f7e136] [cursor=pointer]:
+          - img [aria-hidden] [ref=f7e137]: close
+        - heading "Create a project" [active] [level=1] [ref=f7e141]
+      - generic [ref=f7e146]:
+        - heading [level=2] [ref=f7e147]:
+          - text: Let's start with a name for your project
+          - button "More information about Firebase projects" [ref=f7e149]:
+            - img [aria-hidden] [ref=f7e150]: help
+        - generic [ref=f7e152]:
+          - textbox "Enter your project name" [ref=f7e153]
+          - generic: Enter your project name
+        - generic [ref=f7e155]:
+          - button "my-awesome-project-id" [disabled]
+        - generic [ref=f7e160] [cursor=pointer]:
+          - checkbox "I accept the Firebase terms (opens in new tab)" [ref=f7e163]
+          - generic [ref=f7e164]:
+            - text: I accept the
+            - link "Firebase terms (opens in new tab)" [ref=f7e165]:
+              - /url: https://firebase.google.com/terms?hl=en-US&authuser=0
+              - text: Firebase terms open_in_new
+        - generic [ref=f7e166]:
+          - separator [ref=f7e167]
+          - generic [ref=f7e169]:
+            - switch "Join the Google Developer Program (opens in new tab) to enrich your developer journey with access to AI assistance, learning resources, profile badges, and more!" [checked] [ref=f7e170] [cursor=pointer]
+            - generic [ref=f7e182] [cursor=pointer]:
+              - text: Join the
+              - link "Google Developer Program (opens in new tab)" [ref=f7e183]:
+                - /url: https://developers.google.com/profile/u/me/plans-and-pricing?utm_source=firebase
+                - text: Google Developer Program open_in_new
+              - text: to enrich your developer journey with access to AI assistance, learning resources, profile badges, and more!
+        - generic [ref=f7e184]:
+          - generic [ref=f7e185]:
+            - text: Already have a Google Cloud project?
+            - button "Add Firebase to Google Cloud project" [ref=f7e186] [cursor=pointer]
+          - button "Continue" [disabled]

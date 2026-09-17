@@ -6,8 +6,13 @@ See [`docs/MotoNav_PRD_Phase1.md`](docs/MotoNav_PRD_Phase1.md) for the full prod
 
 ## Status
 
+**Architecture revised Sept 2026 — see `docs/MotoNav_PRD_Phase1.md` "Architecture revision" and `docs/RESEARCH_NOTES.md`.** MotoNav is moving from notification-listening (reading Google Maps' own notifications) to the Google Navigation SDK (requesting routes directly from Google's routing backend). The notification-based pipeline below is still in the codebase and still works, but is superseded — new work happens in `app/src/main/java/com/motonav/app/navsdk/`.
+
+GCP setup (`docs/MotoNav_GCP_SETUP.md`) is **complete** — API key is live in `local.properties`. **Next: `docs/MotoNav_IMPLEMENTATION_HANDOFF.md`** — the entry point for wiring the `Navigator` + destination-entry UI + live map screen + phone GPS, with exact file-by-file steps and the Beeline UX reference distilled into concrete implementation targets. Start there before touching `navsdk/` further.
+
 Phase 1 (Android-only POC) — in development. Google Maps notification parsing and a basic
-full-screen Compose UI are working and verified end-to-end on-device (PRD Timeline step 2).
+full-screen Compose UI are working and verified end-to-end on-device (PRD Timeline step 2) —
+this was the pre-revision milestone; see status note above for the current direction.
 
 - Git repo initialized; Gradle wrapper (8.10.2) pinned in-repo.
 - Android Studio, SDK (API 35, Google Play system image), Temurin 21 JDK installed; `ANDROID_HOME`/`JAVA_HOME` set.
