@@ -2,20 +2,19 @@
 
 ## Recommended approach
 
-**Develop and initially test on a Windows-hosted Android emulator, move to your real phone (OnePlus 15) once the notification-listener pipeline works in the emulator.**
+**Develop and initially test on a Windows-hosted Android emulator, move to your real phone (OnePlus 15) once the app runs in the emulator.**
 
 Why emulator-first:
 1. Fast iteration — no cable, no "install APK to phone" round trip for every change.
-2. Debugger attaches directly; you can inspect `NotificationListenerService` callbacks and logcat live.
-3. Emulators can post local test notifications (via `adb shell cmd notification post ...` or a tiny debug helper) so you can build and test the parser logic *before* you're relying on live Maps/Waze traffic.
+2. Debugger attaches directly; you can inspect `RideSessionService`/Ferrostar state and logcat live.
+3. Location and route responses can be faked (mock location via `adb emu geo fix` or the AVD's Extended Controls) so you can exercise the dial/maneuver logic without a live GPS fix or a real drive.
 
-Why you still need the real phone before calling Phase 1 done:
-1. Emulators don't have Google Maps/Waze installed by default in a way that mirrors real notification behavior, and some emulator images lack Play Services entirely.
-2. Bluetooth behavior (auto-launch triggers, background power management) is emulator-unreliable — BT support in AVDs is limited/inconsistent.
-3. OnePlus's OxygenOS has its own background-restriction quirks (flagged as an open PRD question) that only show up on real hardware.
-4. The actual exit criteria (30+ min test ride, real battery drain over hours) can only be measured on the bike.
+Why you still need the real phone before calling a phase done:
+1. Bluetooth behavior (BLE link to the future ESP32 puck, background power management) is emulator-unreliable — BT support in AVDs is limited/inconsistent.
+2. OnePlus's OxygenOS has its own background-restriction quirks that only show up on real hardware.
+3. The actual exit criteria for each phase in `MotoNav_REBUILD_PLAN_OSM.md` (real ride, screen-lock survival, aeroplane-mode routing) can only be measured on the bike.
 
-So: build and unit-test the parsing/UI logic in the emulator, then do all Bluetooth/power/OEM-behavior/real-ride validation on your OnePlus 15.
+So: build and unit-test the pure logic (`nav/`) in the emulator, then do all Bluetooth/power/OEM-behavior/real-ride validation on your OnePlus 15.
 
 ## Install steps (Windows)
 
@@ -28,9 +27,9 @@ So: build and unit-test the parsing/UI logic in the emulator, then do all Blueto
 3. **Open this repo** (`C:\Daifuku RAG Dev\Active\MotoNav`) in Android Studio: File → Open → select the folder.
    - Let it sync Gradle on first open (downloads dependencies — needs internet).
    - CLI equivalent: `./gradlew assembleDebug` (uses the repo's pinned Gradle wrapper, 8.10.2).
-4. **Create an emulator with Google Play, not just Google APIs:**
-   - AVD Manager → Create Device → pick a Pixel profile → choose a system image tagged **"Google Play"** (not "Google APIs") so Play Store and Play Services are present — needed to install real Google Maps/Waze from the Play Store inside the emulator later, if you want to test against the real apps rather than posted test notifications.
-   - Current dev AVD: `MotoNav_Pixel7_API35` (Pixel 7 profile, API 35, Google Play image). Android 14 or 15 recommended (match roughly what your OnePlus 15 runs, so notification-permission behavior lines up).
+4. **Create an emulator:**
+   - AVD Manager → Create Device → pick a Pixel profile → any system image is fine (Play Services are not required — the app no longer depends on Google Maps/Waze). Android 14 or 15 recommended (match roughly what your OnePlus 15 runs).
+   - Current dev AVD: `MotoNav_Pixel7_API35` (Pixel 7 profile, API 35).
 5. **Run the app** (green Run button, or Shift+F10) targeting the emulator, or `adb install -r app/build/outputs/apk/debug/app-debug.apk` after a CLI build.
 
 ## Testing on your OnePlus 15
@@ -44,17 +43,27 @@ So: build and unit-test the parsing/UI logic in the emulator, then do all Blueto
 
 Kotlin 2.0+ decoupled the Compose compiler from the Kotlin Gradle plugin. `org.jetbrains.kotlin.plugin.compose` must be applied alongside `org.jetbrains.kotlin.android` (both root and app `build.gradle.kts`) or the build fails at configuration with "Compose Compiler Gradle plugin is required." `composeOptions.kotlinCompilerExtensionVersion` is obsolete under this setup — don't add it back.
 
-## Notification-listener development note
+## Routing/geocoding backends
 
-Android requires the user to manually grant "Notification access" per app in system settings — this can't be requested via a normal runtime permission dialog. The app should deep-link to:
-```
-Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS
-```
-You'll need to grant this manually every time you reinstall the app during development (it resets on uninstall). This is expected, not a bug.
+The app talks to remote services that are **user-configurable, not hardcoded** (see `docs/MotoNav_REBUILD_PLAN_OSM.md` §5.1 for why):
+
+- **Router** (`RouterBackend` in `ride/RouterBackend.kt`): FOSSGIS (`valhalla1.openstreetmap.de`, no key needed), Stadia Maps (needs a free-tier API key you supply yourself), or LOCAL (on-device Valhalla, Phase C — needs a side-loaded NZ tile tarball, not yet built).
+- **Geocoding** (`ride/Geocoding.kt`): Photon's public demo server, fair-use only.
+
+Neither needs configuration to build and run against the hardcoded test destination — only matters once you're testing destination search or want a different routing provider.
+
+## Offline map / offline routing data
+
+Both Phase C (offline routing) and Phase E (offline destination map) need a data file side-loaded onto the device that is **not shipped in the repo or built by Gradle**:
+
+- Offline basemap PMTiles cutout — see `docs/MotoNav_OFFLINE_MAP.md` for how to build and `adb push` it.
+- Offline Valhalla NZ tile tarball for `LocalRouteProvider.kt` — not yet built as of this writing; needs `valhalla_build_tiles` run against an NZ OSM extract.
+
+Without these, the app still runs — the map screen shows a blank background and `RouterBackend.LOCAL` has nothing to route against — but neither offline path is testable until the file exists on-device.
 
 ## Distribution (later, per PRD)
 
-Once past the emulator/early-device stage, the PRD calls for distributing via **Play Console's closed testing track** rather than repeated manual APK installs. That requires:
+Once past the emulator/early-device stage, distribute via **Play Console's closed testing track** rather than repeated manual APK installs. That requires:
 1. A Google Play Developer account (one-time $25 fee).
 2. An upload key / app signing setup (Android Studio can generate this: Build → Generate Signed Bundle/APK).
 This is a later step — not needed for the initial emulator/on-device dev loop.
