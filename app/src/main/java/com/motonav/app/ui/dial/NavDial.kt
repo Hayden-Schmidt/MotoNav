@@ -27,13 +27,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.motonav.app.navsdk.BucketedManeuver
-import com.motonav.app.navsdk.NavSdkUiState
-import com.motonav.app.navsdk.SdkNavState_
-import com.motonav.app.navsdk.icon
+import com.motonav.app.nav.BucketedManeuver
+import com.motonav.app.nav.LocalOffsetMeters
+import com.motonav.app.nav.icon
+import com.motonav.app.ride.RidePhase
+import com.motonav.app.ride.RideState
 
 // The dial's five states (MotoNav_UI_SPEC.md §3). Derived, not sourced directly — see
-// [deriveDialState] — so the rest of this file only ever branches on this, never on raw SDK enums.
+// [deriveDialState] — so the rest of this file only ever branches on this, never on raw Ferrostar
+// types.
 sealed interface DialState {
     data object Idle : DialState
     data class Active(val maneuver: BucketedManeuver, val distanceMeters: Int?) : DialState
@@ -43,17 +45,17 @@ sealed interface DialState {
 }
 
 fun deriveDialState(
-    uiState: NavSdkUiState?,
+    uiState: RideState?,
     nowMs: Long,
     staleThresholdMs: Long = DialLayout.STALE_THRESHOLD_MS,
 ): DialState {
     if (uiState == null) return DialState.Idle
-    if (uiState.maneuver == BucketedManeuver.DESTINATION) return DialState.Arrived
+    if (uiState.phase == RidePhase.ARRIVED) return DialState.Arrived
     if (nowMs - uiState.lastUpdated > staleThresholdMs) {
-        return DialState.Stale(uiState.maneuver, uiState.distanceToCurrentStepMeters)
+        return DialState.Stale(uiState.maneuver, uiState.distanceToNextManeuverMeters)
     }
-    if (uiState.navState == SdkNavState_.REROUTING) return DialState.Rerouting(uiState.maneuver)
-    return DialState.Active(uiState.maneuver, uiState.distanceToCurrentStepMeters)
+    if (uiState.phase == RidePhase.REROUTING) return DialState.Rerouting(uiState.maneuver)
+    return DialState.Active(uiState.maneuver, uiState.distanceToNextManeuverMeters)
 }
 
 private fun DialState.ringStyle(): RingStyle = when (this) {
@@ -92,6 +94,9 @@ fun NavDial(
     // Always null this phase — no speed-limit data source exists yet (needs the Roads API, out of
     // scope per MotoNav_TASK7_STAGED_PLAN.md stage 3(c)). Slot is wired so a real value is additive.
     speedLimitKmh: Int? = null,
+    // Phase B — route ahead, in local metre offsets (RideState.routeAheadMeters). Empty when not
+    // navigating.
+    routeAheadMeters: List<LocalOffsetMeters> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
     val ringColor by animateColorAsState(
@@ -107,6 +112,12 @@ fun NavDial(
         Surface(modifier = Modifier.size(diameter), shape = CircleShape, color = Color.Black) {
             Box(modifier = Modifier.size(diameter), contentAlignment = Alignment.Center) {
                 Canvas(modifier = Modifier.size(diameter)) {
+                    // Route line first so the ring/compass/maneuver glyph draw on top of it.
+                    // Heading-relative, so it needs a real heading — same "hide rather than freeze
+                    // wrong" rule as the compass marker (stage 3 §4.3).
+                    if (config.showRouteLine && compassBearingDegrees != null) {
+                        drawRouteLine(routeAheadMeters, compassBearingDegrees)
+                    }
                     drawDialRing(dialState.ringStyle(), ringColor)
                     if (config.showCompass && compassBearingDegrees != null) {
                         drawCompassMarker(config.compassStyle, compassBearingDegrees)
@@ -275,6 +286,27 @@ private fun NavDialArrivedPreview() {
 private fun NavDialEsp32SizePreview() {
     NavDial(
         dialState = DialState.Active(BucketedManeuver.ROUNDABOUT_LEFT, 65),
+        modifier = Modifier.background(Color.Black),
+    )
+}
+
+// Phase B exit test's first half: does the route squiggle read at 240x240? Synthetic curve (a
+// left-bending forward path) standing in for real route geometry, same as every other preview's
+// hardcoded state.
+@Preview(name = "Route line, 240x240", widthDp = 240, heightDp = 240)
+@Composable
+private fun NavDialRouteLinePreview() {
+    val syntheticRouteAhead = listOf(
+        LocalOffsetMeters(0.0, 0.0),
+        LocalOffsetMeters(2.0, 40.0),
+        LocalOffsetMeters(-10.0, 90.0),
+        LocalOffsetMeters(-45.0, 140.0),
+        LocalOffsetMeters(-95.0, 160.0),
+    )
+    NavDial(
+        dialState = DialState.Active(BucketedManeuver.LEFT, 160),
+        compassBearingDegrees = 0f,
+        routeAheadMeters = syntheticRouteAhead,
         modifier = Modifier.background(Color.Black),
     )
 }

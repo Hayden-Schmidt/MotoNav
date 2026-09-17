@@ -5,9 +5,11 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.hardware.display.DisplayManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,6 +17,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -42,11 +45,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
-import com.google.android.libraries.navigation.NavigationApi
-import com.google.android.libraries.navigation.Navigator
+import androidx.compose.material.icons.filled.Place
 import com.motonav.app.location.RideSensorsStateHolder
-import com.motonav.app.navsdk.NavSdkStateHolder
+import com.motonav.app.map.DestinationSearchScreen
+import com.motonav.app.map.RouteSelectionMapScreen
+import com.motonav.app.nav.GeocodeResult
+import com.motonav.app.ride.RideErrorHolder
 import com.motonav.app.ride.RideSessionService
+import com.motonav.app.ride.RideStateHolder
 import com.motonav.app.ride.shouldKeepScreenOn
 import com.motonav.app.settings.SettingsScreen
 import com.motonav.app.settings.SettingsStore
@@ -59,15 +65,13 @@ class MainActivity : ComponentActivity() {
     private lateinit var settingsStore: SettingsStore
     private var locationPermissionGranted by mutableStateOf(false)
     private var locationPermissionPermanentlyDenied by mutableStateOf(false)
-    private var navApiErrorReason by mutableStateOf<String?>(null)
 
     private val requestLocationPermission =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
             val granted = results[Manifest.permission.ACCESS_FINE_LOCATION] == true
             locationPermissionGranted = granted
             if (granted) {
-                navApiErrorReason = null
-                proceedPastLocationPermission()
+                startRideSessionService()
             } else {
                 locationPermissionPermanentlyDenied =
                     !shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -84,11 +88,23 @@ class MainActivity : ComponentActivity() {
             MotoNavTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     var showSettings by remember { mutableStateOf(false) }
+                    // Phase E — destination search → route-selection map → guidance. Two screens
+                    // chained through one nullable "picked but not yet confirmed" result, not a
+                    // navigation-library back stack — there are only two steps.
+                    var showDestinationSearch by remember { mutableStateOf(false) }
+                    var pendingDestination by remember { mutableStateOf<GeocodeResult?>(null) }
                     // Recomputed whenever settings closes, so toggles made there take effect
                     // immediately (SettingsStore is plain SharedPreferences, not itself a State).
                     val dialConfig = remember(showSettings) { settingsStore.navDialConfig() }
-                    val navSdkUiState by NavSdkStateHolder.state.collectAsState()
+                    val rideState by RideStateHolder.state.collectAsState()
                     val rideSensors by RideSensorsStateHolder.state.collectAsState()
+                    val rideError by RideErrorHolder.error.collectAsState()
+                    LaunchedEffect(rideError) {
+                        rideError?.let {
+                            Toast.makeText(this@MainActivity, it, Toast.LENGTH_LONG).show()
+                            RideErrorHolder.clear()
+                        }
+                    }
                     var nowMs by remember { mutableStateOf(System.currentTimeMillis()) }
                     LaunchedEffect(Unit) {
                         while (true) {
@@ -97,7 +113,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    LaunchedEffect(navSdkUiState, settingsStore.screenOnMode) {
+                    LaunchedEffect(rideState, settingsStore.screenOnMode) {
                         val externalDisplayConnected =
                             (getSystemService(DisplayManager::class.java)).displays.size > 1
                         val keepOn = shouldKeepScreenOn(settingsStore.screenOnMode, externalDisplayConnected)
@@ -112,26 +128,33 @@ class MainActivity : ComponentActivity() {
                         !locationPermissionGranted && locationPermissionPermanentlyDenied ->
                             LocationPermissionDeniedScreen()
                         !locationPermissionGranted -> LocationPermissionRationaleScreen(
-                            onContinue = {
-                                requestLocationPermission.launch(
-                                    arrayOf(
-                                        Manifest.permission.ACCESS_FINE_LOCATION,
-                                        Manifest.permission.ACCESS_COARSE_LOCATION,
-                                    ),
-                                )
-                            },
-                        )
-                        navApiErrorReason != null -> NavApiErrorScreen(
-                            reason = navApiErrorReason!!,
-                            onRetry = { proceedPastLocationPermission() },
+                            onContinue = { requestLocationPermission.launch(permissionsToRequest()) },
                         )
                         showSettings -> SettingsScreen(settingsStore)
+                        pendingDestination != null -> RouteSelectionMapScreen(
+                            destination = pendingDestination!!,
+                            onBack = { pendingDestination = null },
+                            onConfirm = {
+                                startGuidanceTo(pendingDestination!!)
+                                pendingDestination = null
+                            },
+                        )
+                        showDestinationSearch -> DestinationSearchScreen(
+                            geocoderBaseUrl = settingsStore.geocoderBaseUrl,
+                            onBack = { showDestinationSearch = false },
+                            onResultSelected = {
+                                pendingDestination = it
+                                showDestinationSearch = false
+                            },
+                        )
                         else -> NavPageScreen(
-                            dialState = deriveDialState(navSdkUiState, nowMs),
+                            dialState = deriveDialState(rideState, nowMs),
                             dialConfig = dialConfig,
                             compassBearingDegrees = rideSensors.headingDegrees,
                             speedKmh = rideSensors.speedKmh,
+                            routeAheadMeters = rideState?.routeAheadMeters ?: emptyList(),
                             onSettingsClick = { showSettings = true },
+                            onDestinationClick = { showDestinationSearch = true },
                         )
                     }
                 }
@@ -139,48 +162,37 @@ class MainActivity : ComponentActivity() {
         }
 
         if (locationPermissionGranted) {
-            proceedPastLocationPermission()
+            startRideSessionService()
         } else {
-            requestLocationPermission.launch(
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
-            )
+            requestLocationPermission.launch(permissionsToRequest())
         }
     }
 
-    // Per MotoNav_TASK7_STAGED_PLAN.md §0.4: this is the one Activity-context Navigation SDK call
-    // that should ever happen. It exists purely to force terms-of-use acceptance (the SDK shows
-    // its dialog automatically here if not yet accepted) — the resulting Navigator reference is
-    // discarded. RideSessionService acquires its own Navigator via the Application-context
-    // overload once terms are already accepted.
-    private fun proceedPastLocationPermission() {
-        if (NavigationApi.areTermsAccepted(application)) {
-            startRideSessionService()
-            return
+    // Location is what gates the ride session (unchanged); the Phase D BLE permissions ride along
+    // in the same prompt since there's no separate moment that needs them — BleLink just no-ops
+    // if they end up denied (see BleLink.hasPermissions()). API 31+ only: below that, advertising
+    // is covered by the legacy BLUETOOTH_ADMIN normal permission, already in the manifest.
+    private fun permissionsToRequest(): Array<String> {
+        val perms = mutableListOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            perms += Manifest.permission.BLUETOOTH_ADVERTISE
+            perms += Manifest.permission.BLUETOOTH_CONNECT
         }
-        NavigationApi.getNavigator(
-            this,
-            object : NavigationApi.NavigatorListener {
-                override fun onNavigatorReady(navigator: Navigator) {
-                    navApiErrorReason = null
-                    startRideSessionService()
-                }
-
-                override fun onError(errorCode: Int) {
-                    navApiErrorReason = when (errorCode) {
-                        NavigationApi.ErrorCode.TERMS_NOT_ACCEPTED -> "You declined the navigation terms of use."
-                        NavigationApi.ErrorCode.NOT_AUTHORIZED -> "API key is invalid or not authorized."
-                        NavigationApi.ErrorCode.NETWORK_ERROR -> "Network error contacting Google Navigation."
-                        NavigationApi.ErrorCode.LOCATION_PERMISSION_MISSING -> "Location permission missing."
-                        else -> "Unknown Navigation SDK error ($errorCode)."
-                    }
-                }
-            },
-        )
+        return perms.toTypedArray()
     }
 
     private fun startRideSessionService() {
         startService(Intent(this, RideSessionService::class.java))
         requestBatteryOptimizationExemptionOnce()
+    }
+
+    // Phase E — re-delivers to the already-running RideSessionService (startService on a running
+    // service just calls onStartCommand again; no bind/messenger needed for one lat/lng pair).
+    private fun startGuidanceTo(destination: GeocodeResult) {
+        val intent = Intent(this, RideSessionService::class.java)
+            .putExtra(RideSessionService.EXTRA_DEST_LAT, destination.lat.toFloat())
+            .putExtra(RideSessionService.EXTRA_DEST_LNG, destination.lng.toFloat())
+        startService(intent)
     }
 
     private var batteryExemptionPromptShown = false
@@ -260,19 +272,6 @@ fun LocationPermissionDeniedScreen() {
     }
 }
 
-@Composable
-fun NavApiErrorScreen(reason: String, onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text("Navigation SDK error", fontSize = 24.sp)
-        Text(reason, fontSize = 18.sp)
-        Button(onClick = onRetry) { Text("Retry") }
-    }
-}
-
 // The dial as MainActivity's default screen (MotoNav_TASK7_STAGED_PLAN.md stage 2 §3.2(d)),
 // replacing the stage-1 debug screen.
 @Composable
@@ -281,7 +280,9 @@ fun NavPageScreen(
     dialConfig: com.motonav.app.ui.dial.NavDialConfig,
     compassBearingDegrees: Float?,
     speedKmh: Float?,
+    routeAheadMeters: List<com.motonav.app.nav.LocalOffsetMeters> = emptyList(),
     onSettingsClick: () -> Unit,
+    onDestinationClick: () -> Unit,
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         NavDial(
@@ -289,15 +290,21 @@ fun NavPageScreen(
             config = dialConfig,
             compassBearingDegrees = compassBearingDegrees,
             speedKmh = speedKmh,
+            routeAheadMeters = routeAheadMeters,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(24.dp),
         )
-        IconButton(
-            onClick = onSettingsClick,
+        Row(
             modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(8.dp),
         ) {
-            Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = Color.White)
+            // Phase E — destination search entry point, next to the existing settings gear.
+            IconButton(onClick = onDestinationClick) {
+                Icon(Icons.Filled.Place, contentDescription = "Destination", tint = Color.White)
+            }
+            IconButton(onClick = onSettingsClick) {
+                Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = Color.White)
+            }
         }
     }
 }

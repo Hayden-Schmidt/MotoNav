@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.motonav.app.ui.dial.CompassStyle
 import com.motonav.app.ride.AutoLaunchMode
+import com.motonav.app.ride.RouterBackend
 import com.motonav.app.ride.ScreenOnMode
 
 @Composable
@@ -36,11 +38,39 @@ fun SettingsScreen(store: SettingsStore) {
     var showEta by remember { mutableStateOf(store.navShowEta) }
     var showDistanceRemaining by remember { mutableStateOf(store.navShowDistanceRemaining) }
     var showStreetName by remember { mutableStateOf(store.navShowStreetName) }
+    var showRouteLine by remember { mutableStateOf(store.navShowRouteLine) }
+    var routerBackend by remember { mutableStateOf(store.routerBackend) }
+    var routerApiKey by remember { mutableStateOf(store.routerApiKey) }
+    var geocoderBaseUrl by remember { mutableStateOf(store.geocoderBaseUrl) }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        Text("Routing backend", fontSize = 22.sp)
+        RouterBackend.entries.forEach { backend ->
+            OptionRow(backend.name, selected = backend == routerBackend) {
+                routerBackend = backend
+                store.routerBackend = backend
+            }
+        }
+        if (routerBackend == RouterBackend.STADIA_MAPS) {
+            OutlinedTextField(
+                value = routerApiKey,
+                onValueChange = { routerApiKey = it; store.routerApiKey = it },
+                label = { Text("Stadia Maps API key") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        Text("Geocoding", fontSize = 22.sp)
+        OutlinedTextField(
+            value = geocoderBaseUrl,
+            onValueChange = { geocoderBaseUrl = it; store.geocoderBaseUrl = it },
+            label = { Text("Geocoder base URL") },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
         Text("Auto-launch", fontSize = 22.sp)
         AutoLaunchMode.entries.forEach { mode ->
             OptionRow(mode.name, selected = mode == autoLaunchMode) {
@@ -75,6 +105,7 @@ fun SettingsScreen(store: SettingsStore) {
             store.navShowDistanceRemaining = it
         }
         ToggleRow("Street name", showStreetName) { showStreetName = it; store.navShowStreetName = it }
+        ToggleRow("Route line", showRouteLine) { showRouteLine = it; store.navShowRouteLine = it }
     }
 }
 
