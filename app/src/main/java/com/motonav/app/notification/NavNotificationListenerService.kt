@@ -1,10 +1,8 @@
 package com.motonav.app.notification
 
-import android.content.Intent
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
-import com.motonav.app.ride.RideSessionService
 
 /**
  * Captures Google Maps navigation notifications directly via NotificationListenerService.
@@ -15,18 +13,15 @@ import com.motonav.app.ride.RideSessionService
  * NOTE: Notification access must be granted manually by the user via
  * Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS — it is not a normal runtime permission
  * and resets on every reinstall during development. See docs/SETUP.md.
+ *
+ * This package is dead per MotoNav_TASK7_STAGED_PLAN.md §1 — RideSessionService no longer starts
+ * from onListenerConnected() and no longer observes NavStateHolder. Left on disk for reference
+ * only; not extended, not binding on anything built after stage 1.
  */
 class NavNotificationListenerService : NotificationListenerService() {
 
     companion object {
         private const val TAG = "NavListener"
-    }
-
-    override fun onListenerConnected() {
-        super.onListenerConnected()
-        // Keeps RideSessionService alive exactly as long as the OS keeps this listener bound —
-        // it owns auto-launch (nav-start signal) + BT-gated wake lock, see RideSessionService.
-        startService(Intent(this, RideSessionService::class.java))
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {

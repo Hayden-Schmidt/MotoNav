@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder brand mark (not final) — the existing launcher icon's circle+triangle, redrawn as
+     a vector so it can serve as the core-splashscreen animated icon. See ui/dial/NavDial.kt's
+     DialLogo for the identical shape reused as the dial's idle-state centerpiece. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFD400"
+        android:pathData="M54,4 A50,50 0 1 1 53.9,4 Z" />
+    <path
+        android:fillColor="#000000"
+        android:pathData="M54,30 L30,74 L78,74 Z" />
+</vector>

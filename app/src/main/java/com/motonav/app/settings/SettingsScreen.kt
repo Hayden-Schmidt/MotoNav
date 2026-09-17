@@ -4,9 +4,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -17,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.motonav.app.ui.dial.CompassStyle
 import com.motonav.app.ride.AutoLaunchMode
 import com.motonav.app.ride.ScreenOnMode
 
@@ -24,9 +29,16 @@ import com.motonav.app.ride.ScreenOnMode
 fun SettingsScreen(store: SettingsStore) {
     var autoLaunchMode by remember { mutableStateOf(store.autoLaunchMode) }
     var screenOnMode by remember { mutableStateOf(store.screenOnMode) }
+    var showCompass by remember { mutableStateOf(store.navShowCompass) }
+    var compassStyle by remember { mutableStateOf(store.navCompassStyle) }
+    var showSpeed by remember { mutableStateOf(store.navShowSpeed) }
+    var showSpeedLimit by remember { mutableStateOf(store.navShowSpeedLimit) }
+    var showEta by remember { mutableStateOf(store.navShowEta) }
+    var showDistanceRemaining by remember { mutableStateOf(store.navShowDistanceRemaining) }
+    var showStreetName by remember { mutableStateOf(store.navShowStreetName) }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text("Auto-launch", fontSize = 22.sp)
@@ -44,6 +56,37 @@ fun SettingsScreen(store: SettingsStore) {
                 store.screenOnMode = mode
             }
         }
+
+        Text("Nav page elements", fontSize = 22.sp)
+        ToggleRow("Compass", showCompass) { showCompass = it; store.navShowCompass = it }
+        if (showCompass) {
+            CompassStyle.entries.forEach { style ->
+                OptionRow("  ${style.name}", selected = style == compassStyle) {
+                    compassStyle = style
+                    store.navCompassStyle = style
+                }
+            }
+        }
+        ToggleRow("Speed", showSpeed) { showSpeed = it; store.navShowSpeed = it }
+        ToggleRow("Speed limit", showSpeedLimit) { showSpeedLimit = it; store.navShowSpeedLimit = it }
+        ToggleRow("ETA", showEta) { showEta = it; store.navShowEta = it }
+        ToggleRow("Distance remaining", showDistanceRemaining) {
+            showDistanceRemaining = it
+            store.navShowDistanceRemaining = it
+        }
+        ToggleRow("Street name", showStreetName) { showStreetName = it; store.navShowStreetName = it }
+    }
+}
+
+@Composable
+private fun ToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, fontSize = 18.sp)
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 

@@ -1,17 +1,23 @@
 package com.motonav.app
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.hardware.display.DisplayManager
+import android.net.Uri
 import android.os.Bundle
+import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
@@ -33,28 +39,65 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
-import com.motonav.app.notification.NavState
-import com.motonav.app.notification.NavStateHolder
-import com.motonav.app.notification.icon
+import com.google.android.libraries.navigation.NavigationApi
+import com.google.android.libraries.navigation.Navigator
+import com.motonav.app.location.RideSensorsStateHolder
+import com.motonav.app.navsdk.NavSdkStateHolder
+import com.motonav.app.ride.RideSessionService
 import com.motonav.app.ride.shouldKeepScreenOn
 import com.motonav.app.settings.SettingsScreen
 import com.motonav.app.settings.SettingsStore
+import com.motonav.app.ui.dial.NavDial
+import com.motonav.app.ui.dial.deriveDialState
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
+
+    private lateinit var settingsStore: SettingsStore
+    private var locationPermissionGranted by mutableStateOf(false)
+    private var locationPermissionPermanentlyDenied by mutableStateOf(false)
+    private var navApiErrorReason by mutableStateOf<String?>(null)
+
+    private val requestLocationPermission =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
+            val granted = results[Manifest.permission.ACCESS_FINE_LOCATION] == true
+            locationPermissionGranted = granted
+            if (granted) {
+                navApiErrorReason = null
+                proceedPastLocationPermission()
+            } else {
+                locationPermissionPermanentlyDenied =
+                    !shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
-        val settingsStore = SettingsStore(this)
+        settingsStore = SettingsStore(this)
+        locationPermissionGranted = hasLocationPermission()
+
         setContent {
             MotoNavTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     var showSettings by remember { mutableStateOf(false) }
-                    val navState by NavStateHolder.state.collectAsState()
+                    // Recomputed whenever settings closes, so toggles made there take effect
+                    // immediately (SettingsStore is plain SharedPreferences, not itself a State).
+                    val dialConfig = remember(showSettings) { settingsStore.navDialConfig() }
+                    val navSdkUiState by NavSdkStateHolder.state.collectAsState()
+                    val rideSensors by RideSensorsStateHolder.state.collectAsState()
+                    var nowMs by remember { mutableStateOf(System.currentTimeMillis()) }
+                    LaunchedEffect(Unit) {
+                        while (true) {
+                            delay(500)
+                            nowMs = System.currentTimeMillis()
+                        }
+                    }
 
-                    LaunchedEffect(navState, settingsStore.screenOnMode) {
+                    LaunchedEffect(navSdkUiState, settingsStore.screenOnMode) {
                         val externalDisplayConnected =
                             (getSystemService(DisplayManager::class.java)).displays.size > 1
                         val keepOn = shouldKeepScreenOn(settingsStore.screenOnMode, externalDisplayConnected)
@@ -66,19 +109,103 @@ class MainActivity : ComponentActivity() {
                     }
 
                     when {
-                        !isNotificationAccessGranted() -> PermissionRequestScreen()
+                        !locationPermissionGranted && locationPermissionPermanentlyDenied ->
+                            LocationPermissionDeniedScreen()
+                        !locationPermissionGranted -> LocationPermissionRationaleScreen(
+                            onContinue = {
+                                requestLocationPermission.launch(
+                                    arrayOf(
+                                        Manifest.permission.ACCESS_FINE_LOCATION,
+                                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                                    ),
+                                )
+                            },
+                        )
+                        navApiErrorReason != null -> NavApiErrorScreen(
+                            reason = navApiErrorReason!!,
+                            onRetry = { proceedPastLocationPermission() },
+                        )
                         showSettings -> SettingsScreen(settingsStore)
-                        navState == null -> IdleScreen(onSettingsClick = { showSettings = true })
-                        else -> NavScreen(navState!!, onSettingsClick = { showSettings = true })
+                        else -> NavPageScreen(
+                            dialState = deriveDialState(navSdkUiState, nowMs),
+                            dialConfig = dialConfig,
+                            compassBearingDegrees = rideSensors.headingDegrees,
+                            speedKmh = rideSensors.speedKmh,
+                            onSettingsClick = { showSettings = true },
+                        )
                     }
                 }
             }
         }
+
+        if (locationPermissionGranted) {
+            proceedPastLocationPermission()
+        } else {
+            requestLocationPermission.launch(
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+            )
+        }
     }
 
-    private fun isNotificationAccessGranted(): Boolean {
-        val enabledListeners = Settings.Secure.getString(contentResolver, "enabled_notification_listeners") ?: ""
-        return enabledListeners.contains(packageName)
+    // Per MotoNav_TASK7_STAGED_PLAN.md §0.4: this is the one Activity-context Navigation SDK call
+    // that should ever happen. It exists purely to force terms-of-use acceptance (the SDK shows
+    // its dialog automatically here if not yet accepted) — the resulting Navigator reference is
+    // discarded. RideSessionService acquires its own Navigator via the Application-context
+    // overload once terms are already accepted.
+    private fun proceedPastLocationPermission() {
+        if (NavigationApi.areTermsAccepted(application)) {
+            startRideSessionService()
+            return
+        }
+        NavigationApi.getNavigator(
+            this,
+            object : NavigationApi.NavigatorListener {
+                override fun onNavigatorReady(navigator: Navigator) {
+                    navApiErrorReason = null
+                    startRideSessionService()
+                }
+
+                override fun onError(errorCode: Int) {
+                    navApiErrorReason = when (errorCode) {
+                        NavigationApi.ErrorCode.TERMS_NOT_ACCEPTED -> "You declined the navigation terms of use."
+                        NavigationApi.ErrorCode.NOT_AUTHORIZED -> "API key is invalid or not authorized."
+                        NavigationApi.ErrorCode.NETWORK_ERROR -> "Network error contacting Google Navigation."
+                        NavigationApi.ErrorCode.LOCATION_PERMISSION_MISSING -> "Location permission missing."
+                        else -> "Unknown Navigation SDK error ($errorCode)."
+                    }
+                }
+            },
+        )
+    }
+
+    private fun startRideSessionService() {
+        startService(Intent(this, RideSessionService::class.java))
+        requestBatteryOptimizationExemptionOnce()
+    }
+
+    private var batteryExemptionPromptShown = false
+
+    private fun requestBatteryOptimizationExemptionOnce() {
+        if (batteryExemptionPromptShown || isIgnoringBatteryOptimizations()) return
+        batteryExemptionPromptShown = true
+        requestBatteryOptimizationExemption()
+    }
+
+    private fun hasLocationPermission(): Boolean =
+        checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+    private fun isIgnoringBatteryOptimizations(): Boolean {
+        val powerManager = getSystemService(PowerManager::class.java)
+        return powerManager.isIgnoringBatteryOptimizations(packageName)
+    }
+
+    private fun requestBatteryOptimizationExemption() {
+        startActivity(
+            Intent(
+                Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                Uri.parse("package:$packageName"),
+            ),
+        )
     }
 }
 
@@ -96,7 +223,22 @@ fun MotoNavTheme(content: @Composable () -> Unit) {
 }
 
 @Composable
-fun PermissionRequestScreen() {
+fun LocationPermissionRationaleScreen(onContinue: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            "MotoNav needs your location to guide your ride. It's used only for turn-by-turn navigation.",
+            fontSize = 20.sp,
+        )
+        Button(onClick = onContinue) { Text("Continue") }
+    }
+}
+
+@Composable
+fun LocationPermissionDeniedScreen() {
     val context = LocalContext.current
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -104,11 +246,14 @@ fun PermissionRequestScreen() {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            "MotoNav needs notification access to read turn-by-turn directions from Google Maps.",
+            "Location access was permanently denied. Open app settings to grant it.",
             fontSize = 20.sp,
         )
         Button(onClick = {
-            context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.parse("package:${context.packageName}")
+            }
+            context.startActivity(intent)
         }) {
             Text("Open settings")
         }
@@ -116,50 +261,43 @@ fun PermissionRequestScreen() {
 }
 
 @Composable
-fun IdleScreen(onSettingsClick: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Waiting for navigation…", fontSize = 28.sp)
-        }
-        IconButton(onClick = onSettingsClick, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) {
-            Icon(Icons.Filled.Settings, contentDescription = "Settings")
-        }
+fun NavApiErrorScreen(reason: String, onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text("Navigation SDK error", fontSize = 24.sp)
+        Text(reason, fontSize = 18.sp)
+        Button(onClick = onRetry) { Text("Retry") }
     }
 }
 
+// The dial as MainActivity's default screen (MotoNav_TASK7_STAGED_PLAN.md stage 2 §3.2(d)),
+// replacing the stage-1 debug screen.
 @Composable
-fun NavScreen(state: NavState, onSettingsClick: () -> Unit) {
+fun NavPageScreen(
+    dialState: com.motonav.app.ui.dial.DialState,
+    dialConfig: com.motonav.app.ui.dial.NavDialConfig,
+    compassBearingDegrees: Float?,
+    speedKmh: Float?,
+    onSettingsClick: () -> Unit,
+) {
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        NavDial(
+            dialState = dialState,
+            config = dialConfig,
+            compassBearingDegrees = compassBearingDegrees,
+            speedKmh = speedKmh,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+        )
+        IconButton(
+            onClick = onSettingsClick,
+            modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(8.dp),
         ) {
-            Icon(
-                state.maneuverType.icon(),
-                contentDescription = state.maneuverText,
-                modifier = Modifier.size(96.dp),
-                tint = MaterialTheme.colorScheme.onBackground,
-            )
-            Text(
-                formatDistance(state.distanceToTurnMeters),
-                fontSize = 72.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-            Text(state.streetName ?: "", fontSize = 28.sp, color = MaterialTheme.colorScheme.onBackground)
-            Text(state.etaText ?: "", fontSize = 24.sp, color = MaterialTheme.colorScheme.onBackground)
-            Text(
-                "${formatDistance(state.remainingDistanceMeters)} remaining",
-                fontSize = 24.sp,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-        }
-        IconButton(onClick = onSettingsClick, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) {
-            Icon(Icons.Filled.Settings, contentDescription = "Settings")
+            Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = Color.White)
         }
     }
 }
-
-private fun formatDistance(meters: Double?): String =
-    if (meters == null) "—" else "${meters.toInt()} m"
