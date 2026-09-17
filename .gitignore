@@ -1,5 +1,6 @@
 *.iml
 .gradle/
+.kotlin/
 /local.properties
 /.idea/
 .DS_Store
@@ -28,3 +29,7 @@ release/
 
 # Google Services (if added later, e.g. crash reporting)
 google-services.json
+
+# Scratch data for building offline routing/map artifacts (OSM extracts, tile tarballs, NSLR
+# dumps) — dev-machine-only intermediates, never repo material. See docs/DEV_LOG.md.
+build-data/

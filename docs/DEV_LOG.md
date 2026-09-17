@@ -64,6 +64,41 @@ things worth recording once, not re-litigating.
     down to whatever's actually needed on-device (likely just geometry + a resolved speed value
     per zone, precomputed for `Permanent` zones and handled separately for `Variable`/`Seasonal`)
     — real design work for the session that actually wires this into the dial.
+- **In-app offline tile downloader shipped** (`ride/OfflineTileDownloader.kt`, wired into
+  `SettingsScreen.kt` under `RouterBackend.LOCAL`) — replaces the adb-push workflow entirely.
+  Plain HTTPS GET straight into `LocalTileFiles`'s expected path, `.part`-file-then-rename so an
+  interrupted download can't leave a half-written tarball where Valhalla reads from. URL is
+  hardcoded to the single hosted NZ release for now (see below); revisit as a setting once more
+  than one region exists.
+- **Repo published**: `Hayden-Schmidt/MotoNav`, now public. Found and fixed a broken branch
+  state on push — `main` (the default branch) held two disconnected junk commits unrelated to the
+  real project, while all actual history was sitting on `master`. Replaced `main`'s history with
+  `master`'s, deleted the stray `master`, repo now has one clean default branch.
+- **NZ tile tarball hosted** as a GitHub Release asset:
+  https://github.com/Hayden-Schmidt/MotoNav/releases/tag/nz-tiles-2026-09-18 — direct asset URL
+  baked into `OfflineTileDownloader`. Not yet tested end-to-end on a device (download → tilesReady
+  → LOCAL routing → aeroplane-mode ride, per the Phase C exit test).
+- **Two pre-existing build breaks found and fixed while verifying compile** (unrelated to today's
+  changes, just never previously caught by a clean `compileDebugKotlin`):
+  - Ferrostar `0.56.0` requires core library desugaring, which `app/build.gradle.kts` never
+    enabled. Added `isCoreLibraryDesugaringEnabled = true` and `desugar_jdk_libs:2.1.5` (2.1.4
+    wasn't new enough — Ferrostar pins a minimum).
+  - `RideState.kt`'s `toRideState()` called `.toInt()` directly on
+    `trip.currentStepGeometryIndex`, which is nullable in the Ferrostar version actually in use —
+    changed to `?.toInt() ?: 0`.
+- **First real device run, on the OnePlus 15 — found and fixed two more issues:**
+  - **Crash on launch**: `RideSessionService.bleLink` was an eagerly-initialized field
+    (`= BleLink(this)`), constructed before Android attaches the Service's Context (construction
+    runs before `attachBaseContext`), so `getSystemService` hit a null base context. Same class
+    of bug `fusedLocationClient` already avoided via `by lazy` — made `bleLink` lazy too.
+  - **Destination search returning US/Malaysia results ahead of NZ ones**: `geocode()` sent no
+    location bias to Photon at all. Added `lat`/`lon` query params biased to an NZ centroid
+    (`-41.0, 174.0`) — a ranking hint, not a hard filter, matching the app's existing NZ-only scope
+    (same reasoning as the hardcoded Albany test destination). Live-GPS biasing would be more
+    precise but wasn't needed to fix the actual complaint.
+- **Phase C exit test passed**: in-app tile download → `RouterBackend.LOCAL` → route resolved on
+  the OnePlus 15 with the device in aeroplane mode. Offline routing chain (build → host → in-app
+  download → on-device routing) confirmed working end-to-end.
 - **Revised Phase C/E design:** don't hardcode "whole of NZ" as the offline region — Valhalla's
   routing graph can't do partial/on-demand tile streaming the way visual map tiles can (it needs
   a complete tile set for a bounded region up front), so offline routing is inherently

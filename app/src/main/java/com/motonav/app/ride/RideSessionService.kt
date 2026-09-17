@@ -73,8 +73,11 @@ class RideSessionService : Service() {
     private val rideLocationProvider = RideLocationProvider()
     // Phase C — only set (and only closed in onDestroy) when routerBackend == LOCAL.
     private var localRouteProvider: LocalValhallaRouteProvider? = null
-    // Phase D — streams the same RideState (+ RideSensors) to the ESP32 puck over BLE.
-    private val bleLink = BleLink(this)
+    // Phase D — streams the same RideState (+ RideSensors) to the ESP32 puck over BLE. Lazy for
+    // the same reason as fusedLocationClient below: a Service's Context isn't attached yet at
+    // field-init time (construction runs before attachBaseContext), so BleLink(this) would call
+    // getSystemService on a null base context if evaluated eagerly.
+    private val bleLink by lazy { BleLink(this) }
 
     // Stage 3: live speed + heading. Both feed RideSensorsStateHolder for the dial and must keep
     // running with the screen off — hence hosted here, not in a composable (plan §0.4 / stage 3).

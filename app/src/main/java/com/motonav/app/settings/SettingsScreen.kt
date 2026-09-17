@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
@@ -17,18 +19,30 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.motonav.app.ui.dial.CompassStyle
 import com.motonav.app.ride.AutoLaunchMode
+import com.motonav.app.ride.LocalTileFiles
+import com.motonav.app.ride.OfflineTileDownloader
 import com.motonav.app.ride.RouterBackend
 import com.motonav.app.ride.ScreenOnMode
+import com.motonav.app.ride.TileDownloadProgress
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(store: SettingsStore) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var tileDownloadProgress by remember { mutableStateOf<TileDownloadProgress?>(null) }
+    var tilesReady by remember {
+        mutableStateOf(context.getExternalFilesDir(null)?.let { LocalTileFiles.tilesReady(it) } ?: false)
+    }
     var autoLaunchMode by remember { mutableStateOf(store.autoLaunchMode) }
     var screenOnMode by remember { mutableStateOf(store.screenOnMode) }
     var showCompass by remember { mutableStateOf(store.navShowCompass) }
@@ -61,6 +75,38 @@ fun SettingsScreen(store: SettingsStore) {
                 label = { Text("Stadia Maps API key") },
                 modifier = Modifier.fillMaxWidth(),
             )
+        }
+        if (routerBackend == RouterBackend.LOCAL) {
+            Text(if (tilesReady) "Offline NZ tiles: downloaded" else "Offline NZ tiles: not downloaded", fontSize = 14.sp)
+            when (val progress = tileDownloadProgress) {
+                is TileDownloadProgress.InProgress -> {
+                    val fraction = if (progress.totalBytes > 0) {
+                        (progress.bytesRead.toFloat() / progress.totalBytes).coerceIn(0f, 1f)
+                    } else {
+                        0f
+                    }
+                    LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+                    Text("${progress.bytesRead / 1_000_000} MB / ${progress.totalBytes / 1_000_000} MB", fontSize = 12.sp)
+                }
+                is TileDownloadProgress.Failed -> Text("Download failed: ${progress.message}", fontSize = 12.sp)
+                TileDownloadProgress.Done, null -> Unit
+            }
+            Button(
+                enabled = tileDownloadProgress !is TileDownloadProgress.InProgress,
+                onClick = {
+                    tileDownloadProgress = null
+                    coroutineScope.launch {
+                        OfflineTileDownloader.downloadNzTiles(context) { progress ->
+                            tileDownloadProgress = progress
+                            if (progress is TileDownloadProgress.Done) {
+                                tilesReady = context.getExternalFilesDir(null)?.let { LocalTileFiles.tilesReady(it) } ?: false
+                            }
+                        }
+                    }
+                },
+            ) {
+                Text(if (tilesReady) "Re-download offline NZ data" else "Download offline NZ data")
+            }
         }
 
         Text("Geocoding", fontSize = 22.sp)
@@ -106,6 +152,9 @@ fun SettingsScreen(store: SettingsStore) {
         }
         ToggleRow("Street name", showStreetName) { showStreetName = it; store.navShowStreetName = it }
         ToggleRow("Route line", showRouteLine) { showRouteLine = it; store.navShowRouteLine = it }
+
+        Text("About", fontSize = 22.sp)
+        Text("Map and routing data © OpenStreetMap contributors, ODbL", fontSize = 14.sp)
     }
 }
 

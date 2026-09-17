@@ -43,7 +43,7 @@ fun NavigationState.toRideState(): RideState? = when (val trip = tripState) {
     )
     is TripState.Navigating -> {
         val content = trip.visualInstruction?.primaryContent
-        val forwardGeometry = forwardRouteGeometry(trip.remainingSteps, trip.currentStepGeometryIndex.toInt())
+        val forwardGeometry = forwardRouteGeometry(trip.remainingSteps, trip.currentStepGeometryIndex?.toInt() ?: 0)
         RideState(
             phase = if (isCalculatingNewRoute) RidePhase.REROUTING else RidePhase.ENROUTE,
             maneuver = fromFerrostarManeuver(content?.maneuverType, content?.maneuverModifier),

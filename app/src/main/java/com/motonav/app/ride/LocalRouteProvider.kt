@@ -22,17 +22,11 @@ import uniffi.ferrostar.WellKnownRouteProvider
  * Phase C — routing against on-device Valhalla tiles, no network. See
  * docs/MotoNav_REBUILD_PLAN_OSM.md Phase C.
  *
- * Tile sourcing (deliberately NOT built or shipped by this change — plan Phase C item 2):
- * download or build an NZ-only Valhalla tile tarball (e.g. `valhalla_build_tiles` against a
- * `New Zealand` extract from https://download.geofabrik.de, or a prebuilt NZ tarball from the
- * Valhalla/OSM community — see the #valhalla-mobile channel linked from valhalla-mobile's
- * README) and side-load it onto the device with:
- *
- *   adb push valhalla_tiles.tar /sdcard/Android/data/com.motonav.app/files/valhalla/valhalla_tiles.tar
- *
- * (or copy the same file over USB/MTP into that app-external-files path — no in-app downloader,
- * no dynamic multi-region sync; this is a single periodically-rebuilt tarball, replaced by
- * pushing a new file over the old one). Elevation is optional and separate: side-load skadi
+ * Tile sourcing: [OfflineTileDownloader] fetches a pre-built NZ tile tarball from a GitHub
+ * Release asset straight into this path — see its doc comment and docs/DEV_LOG.md for the build
+ * (Podman + Valhalla docker, dev-machine only, never run by an end user). Manual side-load still
+ * works as a fallback (same path, `adb push` or USB/MTP copy) if you're using a tarball you built
+ * yourself rather than the hosted one. Elevation is optional and separate: side-load skadi
  * `.hgt`/`.hgt.gz` tiles for the same NZ extent (e.g. from a Mapzen/AWS terrain-tiles mirror) into
  * `.../files/elevation/` the same way. [LocalTileFiles.tilesReady] is what settings/diagnostics
  * should check before offering the LOCAL router backend.
